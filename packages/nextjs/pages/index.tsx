@@ -52,12 +52,14 @@ const Home: NextPage = () => {
     blockData: true,
   });
 
+  // ToDo. We want to show the events no matter what network we are on
   const { writeAsync: sendEther } = useScaffoldContractWrite({
     contractName: "BonusBuidlGuidl",
     functionName: "sendEther",
     args: [toAddressEth, parseEther(etherAmount), reasonEth],
   });
 
+  // ToDo. We want to show the events no matter what network we are on
   const { writeAsync: sendToken } = useScaffoldContractWrite({
     contractName: "BonusBuidlGuidl",
     functionName: "transferERC20",
@@ -70,16 +72,23 @@ const Home: NextPage = () => {
 
   useEffect(() => {
     if (events || eventsERC20) {
-      // Merge events and eventsERC20 (and type them)
       const allEvents = [...(events || []), ...(eventsERC20 || [])] as any[];
+
       allEvents.sort((a, b) => {
-        return a.block.timestamp - b.block.timestamp;
+        const aTimestamp = a.block.timestamp.toString();
+        const bTimestamp = b.block.timestamp.toString();
+
+        if (aTimestamp > bTimestamp) {
+          return 1;
+        } else if (aTimestamp < bTimestamp) {
+          return -1;
+        } else {
+          return 0;
+        }
       });
       setAllEventSorted(allEvents);
     }
   }, [events, eventsERC20]);
-
-  console.log(allEventSorted);
 
   const SendEthUI = (
     <div className="flex items-center flex-col pt-10">
