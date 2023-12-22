@@ -73,7 +73,7 @@ const Home: NextPage = () => {
       // Merge events and eventsERC20 (and type them)
       const allEvents = [...(events || []), ...(eventsERC20 || [])] as any[];
       allEvents.sort((a, b) => {
-        return a.blockData.timestamp - b.blockData.timestamp;
+        return a.block.timestamp - b.block.timestamp;
       });
       setAllEventSorted(allEvents);
     }
