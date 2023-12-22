@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
@@ -72,6 +73,9 @@ const Home: NextPage = () => {
     <>
       <MetaHeader />
       <div>
+        <div className="flex justify-center">
+          <Image src="/bonus.png" width="300" height="300" alt="bonus logo" />
+        </div>
         <div className="flex items-center flex-col flex-grow pt-10">
           <Address address={bonusBuidlGuidlContract?.address} />
           <Balance address={bonusBuidlGuidlContract?.address} />
