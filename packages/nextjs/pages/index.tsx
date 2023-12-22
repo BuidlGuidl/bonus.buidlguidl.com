@@ -4,7 +4,7 @@ import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { MetaHeader } from "~~/components/MetaHeader";
-import { Address, AddressInput, Balance, EtherInput } from "~~/components/scaffold-eth";
+import { Address, AddressInput, Balance, EtherInput, InputBase, IntegerInput } from "~~/components/scaffold-eth";
 import {
   useDeployedContractInfo,
   useScaffoldContractRead,
@@ -21,13 +21,22 @@ const deployedAt = {
 const Home: NextPage = () => {
   const { address } = useAccount();
   const { targetNetwork } = useTargetNetwork();
+  const { data: bonusBuidlGuidlContract } = useDeployedContractInfo("BonusBuidlGuidl");
+
+  const [etherAmount, setEtherAmount] = useState("");
+  const [toAddressEth, setToAddressEth] = useState("");
+  const [reasonEth, setReasonEth] = useState("");
+
+  const [tokenAmount, setTokenAmount] = useState("");
+  const [tokenAddress, setTokenAddress] = useState("");
+  const [toAddressToken, setToAddressToken] = useState("");
+  const [reasonToken, setReasonToken] = useState("");
+
   const { data: isOwner } = useScaffoldContractRead({
     contractName: "BonusBuidlGuidl",
     functionName: "isOwner",
     args: [address],
   });
-
-  const { data: bonusBuidlGuidlContract } = useDeployedContractInfo("BonusBuidlGuidl");
 
   const { data: events, isLoading: isLoadingEvents } = useScaffoldEventHistory({
     contractName: "BonusBuidlGuidl",
@@ -36,37 +45,90 @@ const Home: NextPage = () => {
     blockData: true,
   });
 
-  const [etherAmount, setEtherAmount] = useState("");
-  const [toAddress, setToAddress] = useState("");
-
   const { writeAsync: sendEther } = useScaffoldContractWrite({
     contractName: "BonusBuidlGuidl",
     functionName: "sendEther",
-    args: [toAddress, parseEther(etherAmount), "hola"],
+    args: [toAddressEth, parseEther(etherAmount), reasonEth],
+  });
+
+  const { writeAsync: sendToken } = useScaffoldContractWrite({
+    contractName: "BonusBuidlGuidl",
+    functionName: "transferERC20",
+    args: [tokenAddress, toAddressToken, parseEther(tokenAmount), reasonToken],
   });
 
   const SendEthUI = (
-    <div className="flex items-center flex-col flex-grow pt-10">
+    <div className="flex items-center flex-col pt-10">
       <div className="card w-96 bg-base-100 shadow-xl">
         <div className="card-body">
-          send{" "}
+          <div className="card-title">Send Ether</div>
+          Amount
           <EtherInput
             placeholder="amount of ether"
             value={etherAmount}
             onChange={v => {
               setEtherAmount(v);
             }}
-          />{" "}
-          to{" "}
+          />
+          Recipient
           <AddressInput
             placeholder="address"
-            value={toAddress}
+            value={toAddressEth}
             onChange={v => {
-              setToAddress(v);
+              setToAddressEth(v);
             }}
           />
+          Reason
+          <InputBase name="reason" value={reasonEth} placeholder="Reason" onChange={setReasonEth} />
           <div className="card-actions justify-end p-4">
             <button className="btn btn-primary" onClick={() => sendEther()}>
+              Send Bonus
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const SendTokenUI = (
+    <div className="flex items-center flex-col pt-10">
+      <div className="card w-96 bg-base-100 shadow-xl">
+        <div className="card-body">
+          <div className="card-title">Send ERC20</div>
+          Token
+          {/* ToDo. More tokens. For now just OP */}
+          <select
+            className="form-select"
+            aria-label="Select Token"
+            disabled={targetNetwork.id !== 10}
+            onChange={e => {
+              setTokenAddress(e.target.value);
+            }}
+          >
+            <option>-- Select --</option>
+            <option value="0x4200000000000000000000000000000000000042">OP</option>
+          </select>
+          Amount
+          <IntegerInput
+            placeholder="amount of token"
+            disableMultiplyBy1e18
+            value={tokenAmount}
+            onChange={v => {
+              setTokenAmount(v as string);
+            }}
+          />
+          to
+          <AddressInput
+            placeholder="address"
+            value={toAddressToken}
+            onChange={v => {
+              setToAddressToken(v);
+            }}
+          />
+          Reason
+          <InputBase name="reason" value={reasonToken} placeholder="Reason" onChange={setReasonToken} />
+          <div className="card-actions justify-end p-4">
+            <button className="btn btn-primary" onClick={() => sendToken()}>
               Send Bonus
             </button>
           </div>
@@ -86,7 +148,12 @@ const Home: NextPage = () => {
           <Address address={bonusBuidlGuidlContract?.address} size="xl" />
           <Balance address={bonusBuidlGuidlContract?.address} />
         </div>
-        {isOwner && SendEthUI}
+        {isOwner && (
+          <div className="flex justify-center gap-10">
+            {SendEthUI}
+            {SendTokenUI}
+          </div>
+        )}
         <div className="flex items-center flex-col flex-grow pt-10">
           {isLoadingEvents && (
             <div>
