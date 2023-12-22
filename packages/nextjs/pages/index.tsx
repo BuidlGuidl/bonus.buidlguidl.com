@@ -1,59 +1,107 @@
-import Link from "next/link";
+import { useState } from "react";
 import type { NextPage } from "next";
-import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { formatEther, parseEther } from "viem";
+import { useAccount } from "wagmi";
 import { MetaHeader } from "~~/components/MetaHeader";
+import { Address, AddressInput, Balance, EtherInput } from "~~/components/scaffold-eth";
+import {
+  useDeployedContractInfo,
+  useScaffoldContractRead,
+  useScaffoldContractWrite,
+  useScaffoldEventHistory,
+} from "~~/hooks/scaffold-eth";
 
 const Home: NextPage = () => {
+  const { address } = useAccount();
+
+  const { data: isOwner } = useScaffoldContractRead({
+    contractName: "BonusBuidlGuidl",
+    functionName: "isOwner",
+    args: [address],
+  });
+
+  const { data: bonusBuidlGuidlContract } = useDeployedContractInfo("BonusBuidlGuidl");
+
+  const { data: events, isLoading: isLoadingEvents } = useScaffoldEventHistory({
+    contractName: "BonusBuidlGuidl",
+    eventName: "EtherSent",
+    fromBlock: 0n,
+    blockData: true,
+  });
+
+  const [etherAmount, setEtherAmount] = useState("");
+  const [toAddress, setToAddress] = useState("");
+
+  const { writeAsync: sendEther } = useScaffoldContractWrite({
+    contractName: "BonusBuidlGuidl",
+    functionName: "sendEther",
+    args: [toAddress, parseEther(etherAmount), "hola"],
+  });
+
+  const SendEthUI = (
+    <div className="flex items-center flex-col flex-grow pt-10">
+      <div className="card w-96 bg-base-100 shadow-xl">
+        <div className="card-body">
+          send{" "}
+          <EtherInput
+            placeholder="amount of ether"
+            value={etherAmount}
+            onChange={v => {
+              setEtherAmount(v);
+            }}
+          />{" "}
+          to{" "}
+          <AddressInput
+            placeholder="address"
+            value={toAddress}
+            onChange={v => {
+              setToAddress(v);
+            }}
+          />
+          <div className="card-actions justify-end p-4">
+            <button className="btn btn-primary" onClick={() => sendEther()}>
+              Send Bonus
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <MetaHeader />
-      <div className="flex items-center flex-col flex-grow pt-10">
-        <div className="px-5">
-          <h1 className="text-center mb-8">
-            <span className="block text-2xl mb-2">Welcome to</span>
-            <span className="block text-4xl font-bold">Scaffold-ETH 2</span>
-          </h1>
-          <p className="text-center text-lg">
-            Get started by editing{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/nextjs/pages/index.tsx
-            </code>
-          </p>
-          <p className="text-center text-lg">
-            Edit your smart contract{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              YourContract.sol
-            </code>{" "}
-            in{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/hardhat/contracts
-            </code>
-          </p>
+      <div>
+        <div className="flex items-center flex-col flex-grow pt-10">
+          <Address address={bonusBuidlGuidlContract?.address} />
+          <Balance address={bonusBuidlGuidlContract?.address} />
         </div>
-
-        <div className="flex-grow bg-base-300 w-full mt-16 px-8 py-12">
-          <div className="flex justify-center items-center gap-12 flex-col sm:flex-row">
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <BugAntIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Tinker with your smart contract using the{" "}
-                <Link href="/debug" passHref className="link">
-                  Debug Contract
-                </Link>{" "}
-                tab.
-              </p>
+        {isOwner && SendEthUI}
+        <div className="flex items-center flex-col flex-grow pt-10">
+          {isLoadingEvents && (
+            <div>
+              <span className="loading loading-dots loading-md"></span>
             </div>
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <MagnifyingGlassIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Explore your local transactions with the{" "}
-                <Link href="/blockexplorer" passHref className="link">
-                  Block Explorer
-                </Link>{" "}
-                tab.
-              </p>
-            </div>
-          </div>
+          )}
+          {events?.map(event => {
+            return (
+              <div key={event.log.transactionHash} className="card w-96 bg-base-100 shadow-xl items-center m-3">
+                <div className="card-body">
+                  <div className="flex flex-row p-2">
+                    <div className="flex gap-1 items-center">
+                      Sent
+                      <span className="font-bold">{formatEther(event.args.amount || 0n).substring(0, 6)}</span>
+                      <span className="text-[0.6em] font-bold">ETH</span> to
+                    </div>
+                    <div className="ml-1">
+                      <Address address={event.args.recipient} />
+                    </div>
+                  </div>
+                  <div className="text-center italic text-sm">{event.args.reason}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>
