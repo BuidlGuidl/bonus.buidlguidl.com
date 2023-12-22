@@ -48,6 +48,7 @@ contract BonusBuidlGuidl {
 	}
 
 	function updateOwner(address _owner, bool _isOwner) onlyOwner public {
+		require(_owner != msg.sender, "You cannot remove yourself as an owner");
 		isOwner[_owner] = _isOwner;
 	}
 
@@ -58,7 +59,7 @@ contract BonusBuidlGuidl {
 	}
 
 	function transferERC20(address tokenAddress, address recipient, uint256 amount, string memory reason) onlyOwner public {
-		IERC20(tokenAddress).transfer(recipient, amount);
+		require(IERC20(tokenAddress).transfer(recipient, amount), "Failed to send ERC20");
 		emit ERC20Sent(tokenAddress, recipient, amount, reason);
 	}
 
