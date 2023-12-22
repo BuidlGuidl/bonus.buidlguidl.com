@@ -11,10 +11,16 @@ import {
   useScaffoldContractWrite,
   useScaffoldEventHistory,
 } from "~~/hooks/scaffold-eth";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
+
+const deployedAt = {
+  1: 18843010n,
+  10: 113834574n,
+};
 
 const Home: NextPage = () => {
   const { address } = useAccount();
-
+  const { targetNetwork } = useTargetNetwork();
   const { data: isOwner } = useScaffoldContractRead({
     contractName: "BonusBuidlGuidl",
     functionName: "isOwner",
@@ -26,7 +32,7 @@ const Home: NextPage = () => {
   const { data: events, isLoading: isLoadingEvents } = useScaffoldEventHistory({
     contractName: "BonusBuidlGuidl",
     eventName: "EtherSent",
-    fromBlock: 0n,
+    fromBlock: deployedAt[targetNetwork.id as 1 | 10],
     blockData: true,
   });
 
