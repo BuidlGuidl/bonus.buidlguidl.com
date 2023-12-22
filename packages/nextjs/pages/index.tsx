@@ -76,8 +76,8 @@ const Home: NextPage = () => {
         <div className="flex justify-center">
           <Image src="/bonus.png" width="300" height="300" alt="bonus logo" />
         </div>
-        <div className="flex items-center flex-col flex-grow pt-10">
-          <Address address={bonusBuidlGuidlContract?.address} />
+        <div className="flex items-center flex-col flex-grow">
+          <Address address={bonusBuidlGuidlContract?.address} size="xl" />
           <Balance address={bonusBuidlGuidlContract?.address} />
         </div>
         {isOwner && SendEthUI}
