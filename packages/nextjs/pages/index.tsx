@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
@@ -15,7 +15,7 @@ import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 
 const deployedAt = {
   1: 18843010n,
-  10: 113834574n,
+  10: 113837811n,
 };
 
 const Home: NextPage = () => {
@@ -45,6 +45,13 @@ const Home: NextPage = () => {
     blockData: true,
   });
 
+  const { data: eventsERC20, isLoading: isLoadingEventsERC20 } = useScaffoldEventHistory({
+    contractName: "BonusBuidlGuidl",
+    eventName: "ERC20Sent",
+    fromBlock: deployedAt[targetNetwork.id as 1 | 10],
+    blockData: true,
+  });
+
   const { writeAsync: sendEther } = useScaffoldContractWrite({
     contractName: "BonusBuidlGuidl",
     functionName: "sendEther",
@@ -56,6 +63,23 @@ const Home: NextPage = () => {
     functionName: "transferERC20",
     args: [tokenAddress, toAddressToken, parseEther(tokenAmount), reasonToken],
   });
+
+  // Sort events by timestamp (events & eventsERC20), using a useEffect and setting some state
+  // Then use that state to render the events in the UI
+  const [allEventSorted, setAllEventSorted] = useState<any>();
+
+  useEffect(() => {
+    if (events || eventsERC20) {
+      // Merge events and eventsERC20 (and type them)
+      const allEvents = [...(events || []), ...(eventsERC20 || [])] as any[];
+      allEvents.sort((a, b) => {
+        return a.blockData.timestamp - b.blockData.timestamp;
+      });
+      setAllEventSorted(allEvents);
+    }
+  }, [events, eventsERC20]);
+
+  console.log(allEventSorted);
 
   const SendEthUI = (
     <div className="flex items-center flex-col pt-10">
@@ -155,12 +179,13 @@ const Home: NextPage = () => {
           </div>
         )}
         <div className="flex items-center flex-col flex-grow pt-10">
-          {isLoadingEvents && (
-            <div>
-              <span className="loading loading-dots loading-md"></span>
-            </div>
-          )}
-          {events?.map(event => {
+          {isLoadingEvents ||
+            (isLoadingEventsERC20 && (
+              <div>
+                <span className="loading loading-dots loading-md"></span>
+              </div>
+            ))}
+          {allEventSorted?.map((event: any) => {
             return (
               <div key={event.log.transactionHash} className="card w-96 bg-base-100 shadow-xl items-center m-3">
                 <div className="card-body">
@@ -168,7 +193,8 @@ const Home: NextPage = () => {
                     <div className="flex gap-1 items-center">
                       Sent
                       <span className="font-bold">{formatEther(event.args.amount || 0n).substring(0, 6)}</span>
-                      <span className="text-[0.6em] font-bold">ETH</span> to
+                      {/* ToDo. Support more tokens*/}
+                      <span className="text-[0.6em] font-bold">{event.args.tokenAddress ? "OP" : "ETH"}</span> to
                     </div>
                     <div className="ml-1">
                       <Address address={event.args.recipient} />
